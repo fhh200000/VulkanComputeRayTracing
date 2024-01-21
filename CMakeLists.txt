@@ -19,7 +19,7 @@ elseif(LINUX)
   set (PLATFORM_SOURCE "platform/Linux.cpp")
 endif()
 
-add_executable (VulkanComputeRayTracing "VulkanComputeRayTracing.cpp" "platform/Win32.cpp" ${PLATFORM_SOURCE} "Environment.cpp")
+add_executable (VulkanComputeRayTracing "VulkanComputeRayTracing.cpp" ${PLATFORM_SOURCE} "Environment.cpp" "Frontend.cpp")
 include_directories (VulkanComputeRayTracing "include")
 
 find_package(Vulkan)

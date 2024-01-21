@@ -15,8 +15,8 @@ using std::endl;
 VkInstance vulkanInstance;
 VkDevice vulkanLogicalDevice;
 VkQueue graphicsQueue;
-static VkPhysicalDevice vulkanPhysicalDevice;
-static VkSurfaceKHR     vulkanWindowSurface;
+VkPhysicalDevice vulkanPhysicalDevice;
+VkSurfaceKHR     vulkanWindowSurface;
 
 const char*        enabledLayers[] = {
 #ifdef DEBUG_INFORMATION
@@ -25,6 +25,10 @@ const char*        enabledLayers[] = {
 #endif
 };
 const uint32_t enabledLayerCount = static_cast<uint32_t>(sizeof(enabledLayers) / sizeof(const char*));
+const char* enabledExtensions[] = {
+    "VK_KHR_swapchain"
+};
+const uint32_t enabledExtensionCount = static_cast<uint32_t>(sizeof(enabledExtensions) / sizeof(const char*));
 
 VkResult CreateVulkanRuntimeEnvironment(void)
 {
@@ -137,7 +141,9 @@ selection_done:
         .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
         .queueCreateInfoCount = 1,
         .pQueueCreateInfos = &queueCreateInfo,
-        .pEnabledFeatures = &deviceFeatures
+        .enabledExtensionCount = enabledExtensionCount,
+        .ppEnabledExtensionNames = enabledExtensions,
+        .pEnabledFeatures = &deviceFeatures,
     };
 
     result = vkCreateDevice(vulkanPhysicalDevice, &createInfo, nullptr, &vulkanLogicalDevice);

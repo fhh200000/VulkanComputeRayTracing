@@ -25,7 +25,12 @@ int main()
         cerr << "Cannot create Vulkan window environment." << endl;
         return -1;
     }
+    if (CreateVulkanWindowFrontend() != VK_SUCCESS) {
+        cerr << "Cannot create Vulkan window frontend." << endl;
+        return -1;
+    }
     PlatformEnterEventLoop();
+    DestroyVulkanWindowFrontend();
     DestroyVulkanRuntimeEnvironment();
     cout << "Bye Vulkan." << endl;
     return 0;

@@ -10,6 +10,7 @@
 
 #include <iostream>
 #include <Common.hpp>
+#include <Frontend.hpp>
 #include <Platform.hpp>
 #include <Environment.hpp>
 

@@ -43,7 +43,7 @@ VkResult PlatformCreateWindow(OUT VkSurfaceKHR* surface)
     RegisterClass(&wc);
 
     mainWindowHwnd = CreateWindowW(WindowClassName, reinterpret_cast<LPCWSTR>(applicationName),
-                                   WS_CAPTION | WS_VISIBLE | WS_SYSMENU, CW_USEDEFAULT, CW_USEDEFAULT,
+                                   WS_CAPTION | WS_SYSMENU, CW_USEDEFAULT, CW_USEDEFAULT,
                                    WINDOW_WIDTH, WINDOW_HEIGHT, nullptr, nullptr, executableInstance, nullptr);
     if (!mainWindowHwnd) {
         int error = GetLastError();
@@ -53,6 +53,14 @@ VkResult PlatformCreateWindow(OUT VkSurfaceKHR* surface)
         OutputDebugString(strErrorMessage);
         return VK_ERROR_INITIALIZATION_FAILED;
     }
+
+    // Windows Bug!
+    DWORD dwStyle = GetWindowLongPtr(mainWindowHwnd, GWL_STYLE);
+    DWORD dwExStyle = GetWindowLongPtr(mainWindowHwnd, GWL_EXSTYLE);
+    HMENU menu = GetMenu(mainWindowHwnd);
+    RECT rc = { 0, 0, WINDOW_WIDTH, WINDOW_HEIGHT };
+    AdjustWindowRectEx(&rc, dwStyle, menu ? TRUE : FALSE, dwExStyle);
+    SetWindowPos(mainWindowHwnd, NULL, 0, 0, rc.right - rc.left, rc.bottom - rc.top, SWP_NOZORDER | SWP_NOMOVE);
 
     VkWin32SurfaceCreateInfoKHR createInfo = {
         .sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR,
@@ -67,6 +75,8 @@ void PlatformEnterEventLoop(void)
 {
     MSG msg;
     BOOL bRet;
+
+    ShowWindow(mainWindowHwnd, SW_SHOWNORMAL);
     while ((bRet = GetMessage(&msg, NULL, 0, 0)) != 0)
     {
         if (bRet == -1) {

@@ -10,6 +10,9 @@
 #include <Common.hpp>
 
 extern VkInstance vulkanInstance;
+extern VkDevice vulkanLogicalDevice;
+extern VkSurfaceKHR vulkanWindowSurface;
+extern VkPhysicalDevice vulkanPhysicalDevice;
 
 // Create vulkan runtime environment.
 VkResult CreateVulkanRuntimeEnvironment(void);
