@@ -13,6 +13,16 @@ endif()
 
 project ("VulkanComputeRayTracing")
 
+if(LINUX)
+  set(PLATFORMS "x11"
+    CACHE STRING "Use window system")
+  set_property(CACHE PLATFORMS PROPERTY STRINGS
+    ""
+    "x11"
+    "wayland"
+    )
+endif()
+
 if(WIN32)
   set (PLATFORM_SOURCE "platform/Win32.cpp")
 elseif(LINUX)
@@ -30,6 +40,38 @@ if(Vulkan_FOUND)
   target_link_libraries (VulkanComputeRayTracing ${Vulkan_LIBRARIES})
 else()
   message(FATAL_ERROR "Vulkan Not found!")
+endif()
+
+# Window System
+if(LINUX)
+  foreach(platform IN LISTS PLATFORMS)
+    if(platform MATCHES "[Xx]11")
+      find_package(X11)
+      if(X11_FOUND)
+        set(VCRT_PLATFORM_HAS_X11 ON)
+        target_compile_definitions(VulkanComputeRayTracing PRIVATE VCRT_PLATFORM_HAS_X11)
+      endif()
+    elseif(platform MATCHES "[Ww]ayland")
+      set(VCRT_PLATFORM_HAS_WAYLAND ON)
+      target_compile_definitions(VulkanComputeRayTracing PRIVATE VCRT_PLATFORM_HAS_WAYLAND)
+    endif()
+  endforeach()
+endif()
+
+if(VCRT_PLATFORM_HAS_X11)
+  find_package(PkgConfig)
+  if(NOT PkgConfig_FOUND)
+    message(FATAL_ERROR "pkg-config Not found!")
+  endif()
+  pkg_check_modules(XCB REQUIRED xcb)
+  message (STATUS "XCB ${XCB_VERSION} headers found at ${XCB_INCLUDE_DIR}")
+  target_include_directories (VulkanComputeRayTracing PRIVATE ${XCB_INCLUDE_DIR})
+  message (STATUS "XCB ${XCB_VERSION} libraries found at ${XCB_LIBRARIES}")
+  target_link_libraries (VulkanComputeRayTracing ${XCB_LIBRARIES})
+endif()
+
+if(VCRT_PLATFORM_HAS_WAYLAND)
+  message(WARNING "TODO: support wayland.")
 endif()
 
 if (CMAKE_VERSION VERSION_GREATER 3.12)
