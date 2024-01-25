@@ -7,7 +7,11 @@
 
 #include <Environment.hpp>
 #include <Platform.hpp>
+
+#include <cstring>
 #include <iostream>
+#include <string>
+#include <vector>
 
 using std::cout;
 using std::endl;
@@ -30,6 +34,28 @@ const char* enabledExtensions[] = {
 };
 const uint32_t enabledExtensionCount = static_cast<uint32_t>(sizeof(enabledExtensions) / sizeof(const char*));
 
+static std::vector<const char*> ReduceUnsupportedValidationLayer() {
+#ifdef DEBUG_INFORMATION
+    uint32_t layerCount;
+    vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
+    std::vector<VkLayerProperties> availableLayers(layerCount);
+    vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
+
+    std::vector<const char*> supportedLayers;
+    for (const char* layerName : enabledLayers) {
+        for (const auto& layerProperties : availableLayers) {
+            if (strcmp(layerName, layerProperties.layerName) == 0) {
+                supportedLayers.emplace_back(layerName);
+                break;
+            }
+        }
+    }
+    return supportedLayers;
+#else
+    return {};
+#endif
+}
+
 VkResult CreateVulkanRuntimeEnvironment(void)
 {
 
@@ -44,11 +70,12 @@ VkResult CreateVulkanRuntimeEnvironment(void)
         .apiVersion = VK_API_VERSION_1_0
     };
 
+    std::vector<const char*> layers = ReduceUnsupportedValidationLayer();
     VkInstanceCreateInfo createInfo = {
         .sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
         .pApplicationInfo = &appInfo,
-        .enabledLayerCount = enabledLayerCount,
-        .ppEnabledLayerNames = enabledLayers,
+        .enabledLayerCount = static_cast<uint32_t>(layers.size()),
+        .ppEnabledLayerNames = layers.data(),
         .enabledExtensionCount = platformExtensionCount,
         .ppEnabledExtensionNames = platformExtensions
     };

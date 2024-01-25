@@ -115,7 +115,7 @@ VkResult CreateVulkanWindowFrontend(void)
         return result;
     }
     vulkanSwapChainImages = new VkImage[imageCount];
-    vkGetSwapchainImagesKHR(vulkanLogicalDevice, vulkanSwapChain, &imageCount, vulkanSwapChainImages);
+    return vkGetSwapchainImagesKHR(vulkanLogicalDevice, vulkanSwapChain, &imageCount, vulkanSwapChainImages);
 }
 
 VkResult DestroyVulkanWindowFrontend(void)
