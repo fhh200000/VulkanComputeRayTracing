@@ -87,12 +87,6 @@ VkResult PlatformCreateXWindow(OUT VkSurfaceKHR *surface)
                         (*reply).atom, 4, 32, 1,
                         &(*winSys.xcb_atom_wm_delete_window).atom);
     free(reply);
-    xcb_map_window(winSys.xcb_connection, winSys.xcb_win);
-    // Force the x/y coordinates to 100,100 results are identical in consecutive
-    // runs
-    const uint32_t coords[] = {100, 100};
-    xcb_configure_window(winSys.xcb_connection, winSys.xcb_win,
-                         XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y, coords);
 
     VkXcbSurfaceCreateInfoKHR createInfo = {
         .sType = VK_STRUCTURE_TYPE_XCB_SURFACE_CREATE_INFO_KHR,
