@@ -10,7 +10,10 @@
 
 #define IN
 #define OUT
+
+#if !defined(NDEBUG)
 #define DEBUG_INFORMATION
+#endif
 
 #include <cstdint>
 #include <algorithm>
