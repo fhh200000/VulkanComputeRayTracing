@@ -34,10 +34,10 @@ using CreateWindowT = VkResult (*)(OUT VkSurfaceKHR *surface);
 
 struct WinSysInfo {
 #if defined(VCRT_PLATFORM_HAS_X11)
-    xcb_connection_t    *xcb_connection;
-    xcb_screen_t        *xcb_screen;
-    xcb_drawable_t       xcb_win;
-    xcb_generic_event_t *xcb_event;
+    xcb_connection_t        *xcb_connection;
+    xcb_screen_t            *xcb_screen;
+    xcb_drawable_t           xcb_win;
+    xcb_generic_event_t     *xcb_event;
     xcb_intern_atom_reply_t *xcb_atom_wm_delete_window;
 #endif
 } winSys;
