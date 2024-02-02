@@ -4,6 +4,7 @@
     SPDX-License-Identifier: WTFPL
 
 */
+
 #define UNICODE
 #define WIN32_LEAN_AND_MEAN
 
@@ -55,8 +56,8 @@ VkResult PlatformCreateWindow(OUT VkSurfaceKHR* surface)
     }
 
     // Windows Bug!
-    DWORD dwStyle = GetWindowLongPtr(mainWindowHwnd, GWL_STYLE);
-    DWORD dwExStyle = GetWindowLongPtr(mainWindowHwnd, GWL_EXSTYLE);
+    DWORD dwStyle = static_cast<DWORD>(GetWindowLongPtr(mainWindowHwnd, GWL_STYLE));
+    DWORD dwExStyle = static_cast<DWORD>(GetWindowLongPtr(mainWindowHwnd, GWL_EXSTYLE));
     HMENU menu = GetMenu(mainWindowHwnd);
     RECT rc = { 0, 0, WINDOW_WIDTH, WINDOW_HEIGHT };
     AdjustWindowRectEx(&rc, dwStyle, menu ? TRUE : FALSE, dwExStyle);
@@ -71,18 +72,23 @@ VkResult PlatformCreateWindow(OUT VkSurfaceKHR* surface)
     return vkCreateWin32SurfaceKHR(vulkanInstance, &createInfo, nullptr, surface);
 }
 
+static BOOL windowExiting = FALSE;
+
 void PlatformEnterEventLoop(void)
 {
     MSG msg;
     BOOL bRet;
 
     ShowWindow(mainWindowHwnd, SW_SHOWNORMAL);
-    while ((bRet = GetMessage(&msg, NULL, 0, 0)) != 0)
+    while (true)
     {
+        bRet = PeekMessage(&msg, NULL, 0, 0, PM_REMOVE);
         if (bRet == -1) {
+            windowExiting = TRUE;
             return;
         }
         if (msg.message == WM_QUIT) {
+            windowExiting = TRUE;
             return;
         }
         else
@@ -90,5 +96,12 @@ void PlatformEnterEventLoop(void)
             TranslateMessage(&msg);
             DispatchMessage(&msg);
         }
+        if (windowExiting != TRUE) {
+            if (DrawNextFrame() == VK_ERROR_OUT_OF_DATE_KHR) {
+                windowExiting = TRUE;
+            }
+            vkDeviceWaitIdle(vulkanLogicalDevice);
+        }
+
     }
 }

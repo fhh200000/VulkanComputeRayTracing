@@ -12,6 +12,7 @@
 #include <Common.hpp>
 #include <Frontend.hpp>
 #include <Platform.hpp>
+#include <Renderer.hpp>
 #include <Environment.hpp>
 
 #endif

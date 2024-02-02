@@ -4,17 +4,25 @@
     SPDX-License-Identifier: WTFPL
 
 */
+
+#ifdef _MSC_VER
+// Disables warnings about un-initialized array accesses.
+// Arrays are filled in Vulkan call.
+#pragma warning( disable : 6385 )
+#endif
+
 #include <Frontend.hpp>
 #include <Environment.hpp>
 
 static VkSurfaceCapabilitiesKHR vulkanSurfaceCapabilities;
-static VkSwapchainKHR vulkanSwapChain;
-static VkSurfaceFormatKHR vulkanSurfaceFormat;
 static VkPresentModeKHR vulkanPresentMode;
-static VkImage *vulkanSwapChainImages;
-static uint32_t vulkanSwapChainImageCount;
+static VkImage* vulkanSwapChainImages;
+VkSwapchainKHR vulkanSwapChain;
+VkImageView *vulkanSwapChainImageViews;
+VkSurfaceFormatKHR vulkanSurfaceFormat;
+uint32_t vulkanSwapChainImageCount;
 
-void chooseSwapSurfaceFormat(void)
+static void chooseSwapSurfaceFormat(void)
 {
 
     uint32_t formatCount;
@@ -48,7 +56,6 @@ static void chooseSwapPresentMode(void)
 
     VkPresentModeKHR *vulkanPresentModes;
     uint32_t vulkanPresentModeCount;
-    
 
     vkGetPhysicalDeviceSurfacePresentModesKHR(vulkanPhysicalDevice, vulkanWindowSurface, &vulkanPresentModeCount, nullptr);
     if (vulkanPresentModeCount != 0) {
@@ -61,7 +68,7 @@ static void chooseSwapPresentMode(void)
     }
     vulkanPresentMode = VK_PRESENT_MODE_FIFO_KHR;
     for (uint32_t iter = 0; iter < vulkanPresentModeCount; ++iter) {
-        if (vulkanPresentModes[iter] == VK_PRESENT_MODE_IMMEDIATE_KHR) { // We does NOT care about screen tearing!
+        if (vulkanPresentModes[iter] == VK_PRESENT_MODE_IMMEDIATE_KHR) { // We do NOT care about screen tearing!
             vulkanPresentMode = vulkanPresentModes[iter];
             break;
         }
@@ -114,13 +121,57 @@ VkResult CreateVulkanWindowFrontend(void)
     if (result != VK_SUCCESS) {
         return result;
     }
+    vulkanSwapChainImageCount = imageCount;
     vulkanSwapChainImages = new VkImage[imageCount];
-    vkGetSwapchainImagesKHR(vulkanLogicalDevice, vulkanSwapChain, &imageCount, vulkanSwapChainImages);
+    result = vkGetSwapchainImagesKHR(vulkanLogicalDevice, vulkanSwapChain, &imageCount, vulkanSwapChainImages);
+    if (result != VK_SUCCESS) {
+        return result;
+    }
+
+    vulkanSwapChainImageViews = new VkImageView[imageCount];
+    VkImageViewCreateInfo imageViewcreateInfo = {
+        .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+        .viewType = VK_IMAGE_VIEW_TYPE_2D,
+        .format = vulkanSurfaceFormat.format,
+        .components = {
+            .r = VK_COMPONENT_SWIZZLE_IDENTITY,
+            .g = VK_COMPONENT_SWIZZLE_IDENTITY,
+            .b = VK_COMPONENT_SWIZZLE_IDENTITY,
+            .a = VK_COMPONENT_SWIZZLE_IDENTITY
+        },
+        .subresourceRange = {
+            .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+            .baseMipLevel = 0,
+            .levelCount = 1,
+            .baseArrayLayer = 0,
+            .layerCount = 1
+        }
+    };
+
+    for (uint32_t iter = 0; iter < imageCount; ++iter) {
+        imageViewcreateInfo.image = vulkanSwapChainImages[iter];
+        result = vkCreateImageView(vulkanLogicalDevice, &imageViewcreateInfo, nullptr, &vulkanSwapChainImageViews[iter]);
+        if (result != VK_SUCCESS) {
+            return result;
+        }
+    }
+    
+    return VK_SUCCESS;
 }
 
 VkResult DestroyVulkanWindowFrontend(void)
 {
-    vkDestroySwapchainKHR(vulkanLogicalDevice, vulkanSwapChain, nullptr);
-    delete[] vulkanSwapChainImages;
+    if (vulkanSwapChainImageViews != nullptr) {
+        for (uint32_t iter = 0; iter < vulkanSwapChainImageCount; ++iter) {
+            vkDestroyImageView(vulkanLogicalDevice,vulkanSwapChainImageViews[iter] , nullptr);
+        }
+        delete[] vulkanSwapChainImageViews;
+    }
+    if (vulkanSwapChain != nullptr) {
+        vkDestroySwapchainKHR(vulkanLogicalDevice, vulkanSwapChain, nullptr);
+    }
+    if (vulkanSwapChainImages != nullptr) {
+        delete[] vulkanSwapChainImages;
+    }
     return VK_SUCCESS;
 }

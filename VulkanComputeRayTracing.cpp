@@ -29,7 +29,12 @@ int main()
         cerr << "Cannot create Vulkan window frontend." << endl;
         return -1;
     }
+    if (BeginRenderingOperation() != VK_SUCCESS) {
+        cerr << "Cannot begin rendering operation." << endl;
+        return -1;
+    }
     PlatformEnterEventLoop();
+    EndRenderingOperation();
     DestroyVulkanWindowFrontend();
     DestroyVulkanRuntimeEnvironment();
     cout << "Bye Vulkan." << endl;

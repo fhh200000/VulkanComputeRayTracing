@@ -1,0 +1,17 @@
+/* @file shader.comp
+
+    Compute shader of the ray tracing program.
+    SPDX-License-Identifier: WTFPL
+
+*/
+#version 450
+
+layout(std140, binding = 0) writeonly buffer OutputImage {
+	vec4 graphics[ ];
+};
+
+layout (local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+
+void main() {
+    graphics[ gl_LocalInvocationIndex ] = vec4(1.0,1.0,0.0,0.0);
+}
