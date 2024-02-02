@@ -4,10 +4,12 @@
     SPDX-License-Identifier: WTFPL
 
 */
+
 #ifndef PLATFORM_HPP
 #define PLATFORM_HPP
 
 #include <Common.hpp>
+#include <Renderer.hpp>
 
 // Platform-specific required extensions.
 extern const char*    platformExtensions[];

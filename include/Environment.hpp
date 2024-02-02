@@ -4,6 +4,7 @@
     SPDX-License-Identifier: WTFPL
 
 */
+
 #ifndef ENVIRONMENT_HPP
 #define ENVIRONMENT_HPP
 
@@ -13,6 +14,9 @@ extern VkInstance vulkanInstance;
 extern VkDevice vulkanLogicalDevice;
 extern VkSurfaceKHR vulkanWindowSurface;
 extern VkPhysicalDevice vulkanPhysicalDevice;
+extern uint32_t vulkanQueueFamilyIndex;
+extern VkQueue vulkanGraphicsQueue;
+extern VkQueue vulkanComputeQueue;
 
 // Create vulkan runtime environment.
 VkResult CreateVulkanRuntimeEnvironment(void);

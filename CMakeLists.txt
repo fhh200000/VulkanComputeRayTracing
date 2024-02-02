@@ -29,8 +29,9 @@ elseif(LINUX)
   set (PLATFORM_SOURCE "platform/Linux.cpp")
 endif()
 
-add_executable (VulkanComputeRayTracing "VulkanComputeRayTracing.cpp" ${PLATFORM_SOURCE} "Environment.cpp" "Frontend.cpp")
+add_executable (VulkanComputeRayTracing "VulkanComputeRayTracing.cpp" ${PLATFORM_SOURCE} "Environment.cpp" "Frontend.cpp" "Shader.cpp" "Renderer.cpp" )
 include_directories (VulkanComputeRayTracing "include")
+set (SHADER_SOURCES "shaders/shader.frag" "shaders/shader.vert" "shaders/shader.comp")
 
 find_package(Vulkan)
 if(Vulkan_FOUND)
@@ -74,8 +75,31 @@ if(VCRT_PLATFORM_HAS_WAYLAND)
   message(WARNING "TODO: support wayland.")
 endif()
 
+if(Vulkan_GLSLC_EXECUTABLE)
+  message (STATUS "GLSLC Executable: ${Vulkan_GLSLC_EXECUTABLE}")
+else()
+  message (FATAL_ERROR "GLSLC Not found!")
+endif()
+
 if (CMAKE_VERSION VERSION_GREATER 3.12)
   set_property (TARGET VulkanComputeRayTracing PROPERTY CXX_STANDARD 20)
 endif()
+
+
+foreach(source IN LISTS SHADER_SOURCES)
+  get_filename_component(FILENAME ${source} NAME)
+  add_custom_command(
+    COMMAND
+      ${Vulkan_GLSLC_EXECUTABLE}
+      -o ${CMAKE_BINARY_DIR}/${FILENAME}.spv
+      ${CMAKE_SOURCE_DIR}/${source}
+    OUTPUT ${CMAKE_BINARY_DIR}/${FILENAME}.spv
+    DEPENDS ${CMAKE_BINARY_DIR}
+    COMMENT "Compiling shader: ${FILENAME}"
+  )
+  list(APPEND SHADER_BINARIES ${CMAKE_BINARY_DIR}/${FILENAME}.spv)
+endforeach()
+
+add_custom_target(compile-shaders ALL DEPENDS ${SHADER_BINARIES})
 
 # TODO: 如有需要，请添加测试并安装目标。

@@ -5,6 +5,13 @@
 
 */
 
+#ifdef _MSC_VER
+// Disables warnings about un-initialized array accesses.
+// Arrays are filled in Vulkan call.
+#pragma warning( disable : 6385 )
+#endif
+
+
 #include <Environment.hpp>
 #include <Platform.hpp>
 
@@ -18,17 +25,24 @@ using std::endl;
 
 VkInstance vulkanInstance;
 VkDevice vulkanLogicalDevice;
-VkQueue graphicsQueue;
+VkQueue vulkanGraphicsQueue;
+VkQueue vulkanComputeQueue;
 VkPhysicalDevice vulkanPhysicalDevice;
 VkSurfaceKHR     vulkanWindowSurface;
+uint32_t vulkanQueueFamilyIndex;
 
-const char*        enabledLayers[] = {
 #ifdef DEBUG_INFORMATION
+const char*        enabledLayers[] = {
     "VK_LAYER_KHRONOS_validation",
-    "VK_LAYER_LUNARG_api_dump"
-#endif
+    //"VK_LAYER_LUNARG_api_dump",
+    "VK_LAYER_LUNARG_monitor"
 };
 const uint32_t enabledLayerCount = static_cast<uint32_t>(sizeof(enabledLayers) / sizeof(const char*));
+#else
+const char** enabledLayers;
+const uint32_t enabledLayerCount = 0;
+#endif
+
 const char* enabledExtensions[] = {
     "VK_KHR_swapchain"
 };
@@ -151,16 +165,16 @@ selection_done:
     delete[] physicalDevices;
 
     // Create VkDevice.
-    uint32_t queueFamilyIndex = 0;
-    float queuePriority = 1.0f;
-    if (getDeviceQueueIndexByName(vulkanPhysicalDevice, VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT, &queueFamilyIndex) != VK_SUCCESS) {
+
+    float queuePriority[] = { 0.05f, 0.95f }; // Less graphics, more compute! 
+    if (getDeviceQueueIndexByName(vulkanPhysicalDevice, VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT, &vulkanQueueFamilyIndex) != VK_SUCCESS) {
         return VK_ERROR_FORMAT_NOT_SUPPORTED;
     }
     VkDeviceQueueCreateInfo queueCreateInfo = {
         .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
-        .queueFamilyIndex = queueFamilyIndex,
-        .queueCount = 1,
-        .pQueuePriorities = &queuePriority
+        .queueFamilyIndex = vulkanQueueFamilyIndex,
+        .queueCount = 2,
+        .pQueuePriorities = queuePriority
     };
 
     VkPhysicalDeviceFeatures deviceFeatures{};
@@ -177,7 +191,8 @@ selection_done:
     if (result != VK_SUCCESS) {
         return result;
     }
-    vkGetDeviceQueue(vulkanLogicalDevice, queueFamilyIndex, 0, &graphicsQueue);
+    vkGetDeviceQueue(vulkanLogicalDevice, vulkanQueueFamilyIndex, 0, &vulkanGraphicsQueue);
+    vkGetDeviceQueue(vulkanLogicalDevice, vulkanQueueFamilyIndex, 1, &vulkanComputeQueue);
 
     // Create Window.
     result = PlatformCreateWindow(&vulkanWindowSurface);
