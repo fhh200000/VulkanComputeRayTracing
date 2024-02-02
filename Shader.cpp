@@ -5,11 +5,17 @@
 
 */
 
+#if (defined __STDC_LIB_EXT1__ || _MSC_VER > 1400)
 #define __STDC_WANT_LIB_EXT1__  // For fopen_s
+#else
+#define fopen_s(pFile,filename,mode) ((*(pFile))=fopen((filename), (mode)))==NULL
+#define fread_s(buffer,bufferSize,elementSize,count,stream) fread(buffer,elementSize,count,stream)
+#endif
 
 #include <Shader.hpp>
 #include <cstdio>
 #include <Environment.hpp>
+#include <sys/stat.h>
 
 VkResult CreateShaderStageFromFile(IN const char* filename, IN VkShaderStageFlagBits stage,
     OUT VkPipelineShaderStageCreateInfo* shaderStageCreateInfo)
@@ -20,7 +26,7 @@ VkResult CreateShaderStageFromFile(IN const char* filename, IN VkShaderStageFlag
     if (stat(filename, &fileInfo)) {
         return VK_ERROR_INCOMPATIBLE_SHADER_BINARY_EXT;
     }
-    uint32_t* fileData = new uint32_t alignas(4) [fileInfo.st_size/sizeof(uint32_t)]; // FIXME: Memory leak!
+    uint32_t* fileData = new uint32_t [fileInfo.st_size/sizeof(uint32_t)];
 
     FILE* file;
     if (fopen_s(&file, filename, "rb")) {
@@ -47,5 +53,6 @@ VkResult CreateShaderStageFromFile(IN const char* filename, IN VkShaderStageFlag
     shaderStageCreateInfo->module = shaderModule;
     shaderStageCreateInfo->pName = "main";
 
+    delete[] fileData;
     return VK_SUCCESS;
 }
