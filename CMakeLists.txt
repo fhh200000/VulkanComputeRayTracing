@@ -80,17 +80,17 @@ endif()
 if(Vulkan_GLSLC_EXECUTABLE)
   message (STATUS "GLSLC Executable: ${Vulkan_GLSLC_EXECUTABLE}")
   set(GLSL_SHADER_COMPILER ${Vulkan_GLSLC_EXECUTABLE})
-  set(GLSL_SHADER_COMPILER_COMMON_OPTIONS "--target-env=vulkan")
-  if(LOAD_SHADER_FROM_MEMORY)
-    list(APPEND GLSL_SHADER_COMPILER_COMMON_OPTIONS "-mfmt=num")
-  endif()
+  set(GLSL_SHADER_COMPILER_COMMON_OPTIONS
+    --target-env=vulkan
+    $<$<BOOL:${LOAD_SHADER_FROM_MEMORY}>:-mfmt=num>
+  )
 elseif(Vulkan_GLSLANG_VALIDATOR_EXECUTABLE)
   message (STATUS "GLSLANG_VALIDATOR Executable: ${Vulkan_GLSLANG_VALIDATOR_EXECUTABLE}")
   set(GLSL_SHADER_COMPILER ${Vulkan_GLSLANG_VALIDATOR_EXECUTABLE})
-  set(GLSL_SHADER_COMPILER_COMMON_OPTIONS "-V")
-  if(LOAD_SHADER_FROM_MEMORY)
-    list(APPEND GLSL_SHADER_COMPILER_COMMON_OPTIONS "-x")
-  endif()
+  set(GLSL_SHADER_COMPILER_COMMON_OPTIONS
+    -V
+    $<$<BOOL:${LOAD_SHADER_FROM_MEMORY}>:-x>
+  )
 else()
   message (FATAL_ERROR "glslc or glslangValidator Not found!")
 endif()
