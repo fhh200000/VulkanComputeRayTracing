@@ -74,8 +74,9 @@ static VkResult recordGraphicsCommandBuffer(VkCommandBuffer commandBuffer, uint3
     vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
     vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vulkanGraphicsPipeline);
     VkDeviceSize offsets[] = { 0 };
+    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vulkanGraphicsPipelineLayout,
+        0, 1, &vulkanComputeDescriptorSet, 0, 0);
     vkCmdBindVertexBuffers(commandBuffer, 0, 1, &vulkanComputeResultBuffer, offsets);
-
     VkViewport viewport = {
         .x = 0.0f,
         .y = 0.0f,
@@ -493,19 +494,28 @@ VkResult DrawNextFrame(void)
     recordGraphicsCommandBuffer(vulkanGraphicsCommandBuffer, imageIndex);
     recordComputeCommandBuffer(vulkanComputeCommandBuffer);
     VkSemaphore waitSemaphores[] = { vulkanImageAvailableSemaphore };
-    VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
+    VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT };
 
-    VkSubmitInfo submitInfo = {
+    // First compute, then render.
+    VkSubmitInfo computeSubmitInfo = {
         .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
         .waitSemaphoreCount = 1,
         .pWaitSemaphores = &vulkanImageAvailableSemaphore,
         .pWaitDstStageMask = waitStages,
         .commandBufferCount = 1,
+        .pCommandBuffers = &vulkanComputeCommandBuffer,
+    };
+    result = vkQueueSubmit(vulkanComputeQueue, 1, &computeSubmitInfo, nullptr);
+
+
+    VkSubmitInfo graphicsSubmitInfo = {
+        .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+        .commandBufferCount = 1,
         .pCommandBuffers = &vulkanGraphicsCommandBuffer,
         .signalSemaphoreCount = 1,
         .pSignalSemaphores = &vulkanRenderFinishedSemaphore
     };
-    result = vkQueueSubmit(vulkanGraphicsQueue, 1, &submitInfo, vulkanInFlightFence);
+    result = vkQueueSubmit(vulkanGraphicsQueue, 1, &graphicsSubmitInfo, vulkanInFlightFence);
     if (result != VK_SUCCESS) {
         return result;
     }
