@@ -23,6 +23,8 @@ if(LINUX)
     )
 endif()
 
+option(LOAD_SHADER_FROM_MEMORY OFF)
+
 if(WIN32)
   set (PLATFORM_SOURCE "platform/Win32.cpp")
 elseif(LINUX)
@@ -79,10 +81,16 @@ if(Vulkan_GLSLC_EXECUTABLE)
   message (STATUS "GLSLC Executable: ${Vulkan_GLSLC_EXECUTABLE}")
   set(GLSL_SHADER_COMPILER ${Vulkan_GLSLC_EXECUTABLE})
   set(GLSL_SHADER_COMPILER_COMMON_OPTIONS "--target-env=vulkan")
+  if(LOAD_SHADER_FROM_MEMORY)
+    list(APPEND GLSL_SHADER_COMPILER_COMMON_OPTIONS "-mfmt=num")
+  endif()
 elseif(Vulkan_GLSLANG_VALIDATOR_EXECUTABLE)
   message (STATUS "GLSLANG_VALIDATOR Executable: ${Vulkan_GLSLANG_VALIDATOR_EXECUTABLE}")
   set(GLSL_SHADER_COMPILER ${Vulkan_GLSLANG_VALIDATOR_EXECUTABLE})
   set(GLSL_SHADER_COMPILER_COMMON_OPTIONS "-V")
+  if(LOAD_SHADER_FROM_MEMORY)
+    list(APPEND GLSL_SHADER_COMPILER_COMMON_OPTIONS "-x")
+  endif()
 else()
   message (FATAL_ERROR "glslc or glslangValidator Not found!")
 endif()
@@ -91,22 +99,31 @@ if (CMAKE_VERSION VERSION_GREATER 3.12)
   set_property (TARGET VulkanComputeRayTracing PROPERTY CXX_STANDARD 20)
 endif()
 
-
+if(LOAD_SHADER_FROM_MEMORY)
+  set(SHADER_OUTPUT_DIR ${CMAKE_BINARY_DIR}/shaders)
+  target_compile_definitions(VulkanComputeRayTracing PRIVATE LOAD_SHADER_FROM_MEMORY)
+  target_include_directories(VulkanComputeRayTracing PRIVATE ${SHADER_OUTPUT_DIR})
+else()
+  set(SHADER_OUTPUT_DIR ${CMAKE_BINARY_DIR})
+endif()
 foreach(source IN LISTS SHADER_SOURCES)
   get_filename_component(FILENAME ${source} NAME)
   add_custom_command(
     COMMAND
       ${GLSL_SHADER_COMPILER}
       ${GLSL_SHADER_COMPILER_COMMON_OPTIONS}
-      -o ${CMAKE_BINARY_DIR}/${FILENAME}.spv
+      -o ${SHADER_OUTPUT_DIR}/${FILENAME}.spv
       ${CMAKE_SOURCE_DIR}/${source}
-    OUTPUT ${CMAKE_BINARY_DIR}/${FILENAME}.spv
+    OUTPUT ${SHADER_OUTPUT_DIR}/${FILENAME}.spv
     DEPENDS ${CMAKE_BINARY_DIR}
     COMMENT "Compiling shader: ${FILENAME}"
   )
-  list(APPEND SHADER_BINARIES ${CMAKE_BINARY_DIR}/${FILENAME}.spv)
+  list(APPEND SHADER_BINARIES ${SHADER_OUTPUT_DIR}/${FILENAME}.spv)
 endforeach()
 
 add_custom_target(compile-shaders ALL DEPENDS ${SHADER_BINARIES})
+if(LOAD_SHADER_FROM_MEMORY)
+  add_dependencies(VulkanComputeRayTracing compile-shaders)
+endif()
 
 # TODO: 如有需要，请添加测试并安装目标。
