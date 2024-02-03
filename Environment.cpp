@@ -18,6 +18,7 @@
 #include <cstdint>
 #include <cstring>
 #include <iostream>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -117,14 +118,11 @@ static VkResult getDeviceQueueIndexByName(IN VkPhysicalDevice device)
     properties = new VkQueueFamilyProperties[queueFamilyCount];
     vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, properties);
     for (uint32_t iter = 0; iter < queueFamilyCount; ++iter) {
-        if (vulkanGraphicsQueueFamilyIndex == UINT32_MAX &&
-            (properties[iter].queueFlags & VK_QUEUE_GRAPHICS_BIT)) {
+        // TODO: create different queues on non-graphical GPUs.
+        if (properties[iter].queueFlags & (VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT)) {
             vulkanGraphicsQueueFamilyIndex = iter;
-        }
-        if ((vulkanComputeQueueFamilyIndex == UINT32_MAX ||
-             vulkanComputeQueueFamilyIndex == vulkanGraphicsQueueFamilyIndex) &&
-            (properties[iter].queueFlags & VK_QUEUE_COMPUTE_BIT)) {
             vulkanComputeQueueFamilyIndex = iter;
+            break;
         }
     }
     if (vulkanGraphicsQueueFamilyIndex != UINT32_MAX &&
@@ -180,17 +178,15 @@ selection_done:
     if (getDeviceQueueIndexByName(vulkanPhysicalDevice) != VK_SUCCESS) {
         return VK_ERROR_FORMAT_NOT_SUPPORTED;
     }
+    std::set<uint32_t> uniqueQueueFamilies{
+        vulkanGraphicsQueueFamilyIndex,
+        vulkanComputeQueueFamilyIndex,
+    };
     std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
-    queueCreateInfos.emplace_back(VkDeviceQueueCreateInfo{
-        .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
-        .queueFamilyIndex = vulkanGraphicsQueueFamilyIndex,
-        .queueCount = 1,
-        .pQueuePriorities = &queuePriority,
-    });
-    if (vulkanGraphicsQueueFamilyIndex != vulkanComputeQueueFamilyIndex) {
+    for (auto family : uniqueQueueFamilies) {
         queueCreateInfos.emplace_back(VkDeviceQueueCreateInfo{
             .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
-            .queueFamilyIndex = vulkanComputeQueueFamilyIndex,
+            .queueFamilyIndex = family,
             .queueCount = 1,
             .pQueuePriorities = &queuePriority,
         });
@@ -211,11 +207,7 @@ selection_done:
         return result;
     }
     vkGetDeviceQueue(vulkanLogicalDevice, vulkanGraphicsQueueFamilyIndex, 0, &vulkanGraphicsQueue);
-    if (vulkanComputeQueueFamilyIndex != vulkanGraphicsQueueFamilyIndex) {
-        vkGetDeviceQueue(vulkanLogicalDevice, vulkanComputeQueueFamilyIndex, 1, &vulkanComputeQueue);
-    } else {
-        vulkanComputeQueue = vulkanGraphicsQueue;
-    }
+    vkGetDeviceQueue(vulkanLogicalDevice, vulkanComputeQueueFamilyIndex, 0, &vulkanComputeQueue);
 
     // Create Window.
     result = PlatformCreateWindow(&vulkanWindowSurface);
