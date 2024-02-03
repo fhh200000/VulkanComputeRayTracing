@@ -77,8 +77,14 @@ endif()
 
 if(Vulkan_GLSLC_EXECUTABLE)
   message (STATUS "GLSLC Executable: ${Vulkan_GLSLC_EXECUTABLE}")
+  set(GLSL_SHADER_COMPILER ${Vulkan_GLSLC_EXECUTABLE})
+  set(GLSL_SHADER_COMPILER_COMMON_OPTIONS "--target-env=vulkan")
+elseif(Vulkan_GLSLANG_VALIDATOR_EXECUTABLE)
+  message (STATUS "GLSLANG_VALIDATOR Executable: ${Vulkan_GLSLANG_VALIDATOR_EXECUTABLE}")
+  set(GLSL_SHADER_COMPILER ${Vulkan_GLSLANG_VALIDATOR_EXECUTABLE})
+  set(GLSL_SHADER_COMPILER_COMMON_OPTIONS "-V")
 else()
-  message (FATAL_ERROR "GLSLC Not found!")
+  message (FATAL_ERROR "glslc or glslangValidator Not found!")
 endif()
 
 if (CMAKE_VERSION VERSION_GREATER 3.12)
@@ -90,7 +96,8 @@ foreach(source IN LISTS SHADER_SOURCES)
   get_filename_component(FILENAME ${source} NAME)
   add_custom_command(
     COMMAND
-      ${Vulkan_GLSLC_EXECUTABLE}
+      ${GLSL_SHADER_COMPILER}
+      ${GLSL_SHADER_COMPILER_COMMON_OPTIONS}
       -o ${CMAKE_BINARY_DIR}/${FILENAME}.spv
       ${CMAKE_SOURCE_DIR}/${source}
     OUTPUT ${CMAKE_BINARY_DIR}/${FILENAME}.spv
