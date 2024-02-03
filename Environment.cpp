@@ -15,6 +15,7 @@
 #include <Environment.hpp>
 #include <Platform.hpp>
 
+#include <cstdint>
 #include <cstring>
 #include <iostream>
 #include <string>
@@ -29,7 +30,8 @@ VkQueue vulkanGraphicsQueue;
 VkQueue vulkanComputeQueue;
 VkPhysicalDevice vulkanPhysicalDevice;
 VkSurfaceKHR     vulkanWindowSurface;
-uint32_t vulkanQueueFamilyIndex;
+uint32_t vulkanGraphicsQueueFamilyIndex = UINT32_MAX;
+uint32_t vulkanComputeQueueFamilyIndex = UINT32_MAX;
 
 #ifdef DEBUG_INFORMATION
 const char*        enabledLayers[] = {
@@ -101,7 +103,7 @@ VkResult CreateVulkanRuntimeEnvironment(void)
     return VK_SUCCESS;
 }
 
-static VkResult getDeviceQueueIndexByName(IN VkPhysicalDevice device, IN uint32_t flags, OUT uint32_t *index)
+static VkResult getDeviceQueueIndexByName(IN VkPhysicalDevice device)
 {
     VkResult result = VK_ERROR_FORMAT_NOT_SUPPORTED;
     uint32_t queueFamilyCount = 0;
@@ -115,11 +117,19 @@ static VkResult getDeviceQueueIndexByName(IN VkPhysicalDevice device, IN uint32_
     properties = new VkQueueFamilyProperties[queueFamilyCount];
     vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, properties);
     for (uint32_t iter = 0; iter < queueFamilyCount; ++iter) {
-        if ((properties[iter].queueFlags & flags) == flags) {
-            *index = iter;
-            result = VK_SUCCESS;
-            break;
+        if (vulkanGraphicsQueueFamilyIndex == UINT32_MAX &&
+            (properties[iter].queueFlags & VK_QUEUE_GRAPHICS_BIT)) {
+            vulkanGraphicsQueueFamilyIndex = iter;
         }
+        if ((vulkanComputeQueueFamilyIndex == UINT32_MAX ||
+             vulkanComputeQueueFamilyIndex == vulkanGraphicsQueueFamilyIndex) &&
+            (properties[iter].queueFlags & VK_QUEUE_COMPUTE_BIT)) {
+            vulkanComputeQueueFamilyIndex = iter;
+        }
+    }
+    if (vulkanGraphicsQueueFamilyIndex != UINT32_MAX &&
+        vulkanComputeQueueFamilyIndex != UINT32_MAX) {
+        result = VK_SUCCESS;
     }
 
     delete[] properties;
@@ -166,22 +176,31 @@ selection_done:
 
     // Create VkDevice.
 
-    float queuePriority[] = { 0.05f, 0.95f }; // Less graphics, more compute! 
-    if (getDeviceQueueIndexByName(vulkanPhysicalDevice, VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT, &vulkanQueueFamilyIndex) != VK_SUCCESS) {
+    static const float queuePriority = 1.f;
+    if (getDeviceQueueIndexByName(vulkanPhysicalDevice) != VK_SUCCESS) {
         return VK_ERROR_FORMAT_NOT_SUPPORTED;
     }
-    VkDeviceQueueCreateInfo queueCreateInfo = {
+    std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
+    queueCreateInfos.emplace_back(VkDeviceQueueCreateInfo{
         .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
-        .queueFamilyIndex = vulkanQueueFamilyIndex,
-        .queueCount = 2,
-        .pQueuePriorities = queuePriority
-    };
+        .queueFamilyIndex = vulkanGraphicsQueueFamilyIndex,
+        .queueCount = 1,
+        .pQueuePriorities = &queuePriority,
+    });
+    if (vulkanGraphicsQueueFamilyIndex != vulkanComputeQueueFamilyIndex) {
+        queueCreateInfos.emplace_back(VkDeviceQueueCreateInfo{
+            .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+            .queueFamilyIndex = vulkanComputeQueueFamilyIndex,
+            .queueCount = 1,
+            .pQueuePriorities = &queuePriority,
+        });
+    }
 
     VkPhysicalDeviceFeatures deviceFeatures{};
     VkDeviceCreateInfo createInfo = {
         .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
-        .queueCreateInfoCount = 1,
-        .pQueueCreateInfos = &queueCreateInfo,
+        .queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size()),
+        .pQueueCreateInfos = queueCreateInfos.data(),
         .enabledExtensionCount = enabledExtensionCount,
         .ppEnabledExtensionNames = enabledExtensions,
         .pEnabledFeatures = &deviceFeatures,
@@ -191,8 +210,12 @@ selection_done:
     if (result != VK_SUCCESS) {
         return result;
     }
-    vkGetDeviceQueue(vulkanLogicalDevice, vulkanQueueFamilyIndex, 0, &vulkanGraphicsQueue);
-    vkGetDeviceQueue(vulkanLogicalDevice, vulkanQueueFamilyIndex, 1, &vulkanComputeQueue);
+    vkGetDeviceQueue(vulkanLogicalDevice, vulkanGraphicsQueueFamilyIndex, 0, &vulkanGraphicsQueue);
+    if (vulkanComputeQueueFamilyIndex != vulkanGraphicsQueueFamilyIndex) {
+        vkGetDeviceQueue(vulkanLogicalDevice, vulkanComputeQueueFamilyIndex, 1, &vulkanComputeQueue);
+    } else {
+        vulkanComputeQueue = vulkanGraphicsQueue;
+    }
 
     // Create Window.
     result = PlatformCreateWindow(&vulkanWindowSurface);

@@ -14,7 +14,8 @@ extern VkInstance vulkanInstance;
 extern VkDevice vulkanLogicalDevice;
 extern VkSurfaceKHR vulkanWindowSurface;
 extern VkPhysicalDevice vulkanPhysicalDevice;
-extern uint32_t vulkanQueueFamilyIndex;
+extern uint32_t vulkanGraphicsQueueFamilyIndex;
+extern uint32_t vulkanComputeQueueFamilyIndex;
 extern VkQueue vulkanGraphicsQueue;
 extern VkQueue vulkanComputeQueue;
 
