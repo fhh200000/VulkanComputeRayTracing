@@ -231,6 +231,8 @@ void PlatformEnterEventLoop(void)
     showWindow();
 
     while (!winSys.quit) {
+        DrawNextFrame();
         handleEvent();
+        vkDeviceWaitIdle(vulkanLogicalDevice);
     }
 }
