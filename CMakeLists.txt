@@ -3,8 +3,9 @@
 # CMake scripts for building applications.
 # SPDX-License-Identifier: WTFPL
 
-cmake_minimum_required (VERSION 3.8)
+cmake_minimum_required (VERSION 3.16)
 
+set (CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/3rdparty/CMakeModules")
 # For MSVC
 if (POLICY CMP0141)
   cmake_policy (SET CMP0141 NEW)
@@ -62,19 +63,27 @@ if(LINUX)
 endif()
 
 if(VCRT_PLATFORM_HAS_X11)
-  find_package(PkgConfig)
-  if(NOT PkgConfig_FOUND)
-    message(FATAL_ERROR "pkg-config Not found!")
+  find_package(XCB)
+  if(XCB_FOUND)
+    message (STATUS "XCB ${XCB_VERSION} headers found at ${XCB_INCLUDE_DIRS}")
+    target_include_directories (VulkanComputeRayTracing PRIVATE ${XCB_INCLUDE_DIRS})
+    message (STATUS "XCB ${XCB_VERSION} libraries found at ${XCB_XCB_LIBRARY}")
+    target_link_libraries (VulkanComputeRayTracing ${XCB_XCB_LIBRARY})
+  else()
+    message(FATAL_ERROR "XCB Not found!")
   endif()
-  pkg_check_modules(XCB REQUIRED xcb)
-  message (STATUS "XCB ${XCB_VERSION} headers found at ${XCB_INCLUDE_DIR}")
-  target_include_directories (VulkanComputeRayTracing PRIVATE ${XCB_INCLUDE_DIR})
-  message (STATUS "XCB ${XCB_VERSION} libraries found at ${XCB_LIBRARIES}")
-  target_link_libraries (VulkanComputeRayTracing ${XCB_LIBRARIES})
 endif()
 
 if(VCRT_PLATFORM_HAS_WAYLAND)
-  message(WARNING "TODO: support wayland.")
+  find_package(Wayland)
+  if(Wayland_Client_FOUND)
+    message (STATUS "Wayland ${Wayland_Client_VERSION} headers found at ${Wayland_INCLUDE_DIRS}")
+    target_include_directories (VulkanComputeRayTracing PRIVATE ${Wayland_INCLUDE_DIRS})
+    message (STATUS "Wayland ${Wayland_Client_VERSION} libraries found at ${Wayland_Client_LIBRARY}")
+    target_link_libraries (VulkanComputeRayTracing ${Wayland_Client_LIBRARY})
+  else()
+    message(FATAL_ERROR "Wayland Not found!")
+  endif()
 endif()
 
 if(Vulkan_GLSLC_EXECUTABLE)

@@ -201,7 +201,7 @@ auto WindowSystemEventDispatch()
     if (strcmp(session, "x11") == 0) {
         return std::make_tuple(&PlatformShowXWindow, &PlatformHandleXEvent);
     } else if (strcmp(session, "wayland") == 0) {
-        returnstd::make_tuple(&PlatformShowWaylandWindow,
+        return std::make_tuple(&PlatformShowWaylandWindow,
                               &PlatformHandleWaylandEvent);
     }
     assert(false && "Unknown window system.");
@@ -209,7 +209,7 @@ auto WindowSystemEventDispatch()
 #elif defined(VCRT_PLATFORM_HAS_X11)
     return std::make_tuple(&PlatformShowXWindow, &PlatformHandleXEvent);
 #elif defined(VCRT_PLATFORM_HAS_WAYLAND)
-    returnstd::make_tuple(&PlatformShowWaylandWindow,
+    return std::make_tuple(&PlatformShowWaylandWindow,
                           &PlatformHandleWaylandEvent);
 #else
 #error "Unknown window system."
