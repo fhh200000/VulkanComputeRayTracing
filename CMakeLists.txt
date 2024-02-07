@@ -15,8 +15,8 @@ endif()
 project ("VulkanComputeRayTracing")
 
 if(LINUX)
-  set(PLATFORMS "x11"
-    CACHE STRING "Use window system")
+  set(PLATFORMS "x11" "wayland"
+    STRING "Use window system")
   set_property(CACHE PLATFORMS PROPERTY STRINGS
     ""
     "x11"
@@ -83,6 +83,14 @@ if(VCRT_PLATFORM_HAS_WAYLAND)
     target_link_libraries (VulkanComputeRayTracing ${Wayland_Client_LIBRARY})
   else()
     message(FATAL_ERROR "Wayland Not found!")
+  endif()
+
+  find_package(WaylandScanner)
+  if(WaylandScanner_FOUND)
+    ecm_add_wayland_client_protocol(VulkanComputeRayTracing PROTOCOL ${CMAKE_SOURCE_DIR}/3rdparty/xdg-shell.xml BASENAME xdg-shell)
+    target_include_directories (VulkanComputeRayTracing PRIVATE ${CMAKE_CURRENT_BINARY_DIR}) # Generated Header
+  else()
+    message(FATAL_ERROR "Wayland Scanner Not found!")
   endif()
 endif()
 

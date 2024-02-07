@@ -12,7 +12,7 @@ using std::cerr;
 using std::endl;
 
 const char16_t* applicationName = u"Vulkan Compute Raytracing";
-const char*        applicationNameNarrow = "Vulkan Compute Raytracing";
+const char*     applicationNameNarrow = "Vulkan Compute Raytracing";
 
 int main()
 {

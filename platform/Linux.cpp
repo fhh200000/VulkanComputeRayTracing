@@ -7,8 +7,9 @@
 
 #include <Platform.hpp>
 #include <Environment.hpp>
+#include <tuple>
 
-#if defined(VCRT_PLATFORM_HAS_X11) && defined(VCRT_PLATFORM_HAS_WAYLAND)
+#if defined(VCRT_PLATFORM_HAS_X11) || defined(VCRT_PLATFORM_HAS_WAYLAND)
 #include <cassert>
 #include <cstdlib>
 #include <cstring>
@@ -19,12 +20,19 @@
 #include <vulkan/vulkan_xcb.h>
 #endif
 
-#include <tuple>
+#if defined(VCRT_PLATFORM_HAS_WAYLAND)
+#include <wayland-client.h>
+#include <wayland-xdg-shell-client-protocol.h>
+#include <vulkan/vulkan_wayland.h>
+#endif
 
 const char* platformExtensions[] = {
     "VK_KHR_surface",
 #if defined(VCRT_PLATFORM_HAS_X11)
     "VK_KHR_xcb_surface",
+#endif
+#if defined(VCRT_PLATFORM_HAS_WAYLAND)
+    "VK_KHR_wayland_surface"
 #endif
 };
 
@@ -44,10 +52,19 @@ struct WinSysInfo {
     xcb_generic_event_t     *xcb_event;
     xcb_intern_atom_reply_t *xcb_atom_wm_delete_window;
 #endif
+#if defined(VCRT_PLATFORM_HAS_WAYLAND)
+    wl_display              *wl_display_instance;
+    wl_compositor           *wl_compositor_instance;
+    wl_surface              *wl_surface_instance;
+    xdg_wm_base             *wl_xdg_shell;
+    xdg_surface             *wl_xdg_shell_surface;
+    xdg_toplevel            *wl_xdg_toplevel;
+#endif
     bool quit  = false;
     uint32_t width  = WINDOW_WIDTH;
     uint32_t height = WINDOW_HEIGHT;
 } winSys;
+
 
 #if defined(VCRT_PLATFORM_HAS_X11)
 VkResult PlatformCreateXWindow(OUT VkSurfaceKHR *surface)
@@ -106,9 +123,121 @@ VkResult PlatformCreateXWindow(OUT VkSurfaceKHR *surface)
 #endif
 
 #if defined(VCRT_PLATFORM_HAS_WAYLAND)
+
+static void handleShellPing(void* data, struct xdg_wm_base* shell, uint32_t serial)
+{
+    xdg_wm_base_pong(shell, serial);
+
+    static_cast<void>(data);
+}
+
+static struct xdg_wm_base_listener shellListener = {
+    .ping = handleShellPing
+};
+
+static void registryHandler(void *data, struct wl_registry *registry, uint32_t id,
+                            const char *interface, uint32_t version)
+{
+    if (strcmp(interface, "wl_compositor") == 0) {
+        winSys.wl_compositor_instance = reinterpret_cast<wl_compositor *>(wl_registry_bind(registry,
+                                            id, &wl_compositor_interface, 1));
+    }
+    else if (strcmp(interface, xdg_wm_base_interface.name) == 0) {
+        winSys.wl_xdg_shell = reinterpret_cast<xdg_wm_base*>(wl_registry_bind(registry,
+                                            id, &xdg_wm_base_interface, 1));
+        xdg_wm_base_add_listener(winSys.wl_xdg_shell, &shellListener, NULL);
+    }
+
+    static_cast<void>(data);
+    static_cast<void>(version);
+}
+
+static const struct wl_registry_listener registryListener = {
+    registryHandler
+};
+
+static void handleShellSurfaceConfigure(void* data, struct xdg_surface* shellSurface, uint32_t serial)
+{
+    xdg_surface_ack_configure(shellSurface, serial);
+
+    static_cast<void>(data);
+}
+
+static const struct xdg_surface_listener shellSurfaceListener = {
+    .configure = handleShellSurfaceConfigure
+};
+
+static void handleToplevelClose(void* data, struct xdg_toplevel* toplevel)
+{
+    winSys.quit = 1;
+
+    static_cast<void>(data);
+    static_cast<void>(toplevel);
+}
+
+static void handleToplevelConfigure(void *data, struct xdg_toplevel *xdg_toplevel,
+                        int32_t width, int32_t height,  struct wl_array *states)
+{
+    static_cast<void>(data);
+    static_cast<void>(xdg_toplevel);
+    static_cast<void>(width);
+    static_cast<void>(height);
+    static_cast<void>(states);
+}
+
+static xdg_toplevel_listener toplevelListener = {
+    .configure = handleToplevelConfigure,
+    .close = handleToplevelClose
+};
+
 VkResult PlatformCreateWaylandWindow(OUT VkSurfaceKHR *surface)
 {
-    return VK_SUCCESS;
+    winSys.wl_display_instance = wl_display_connect(nullptr);
+    if (winSys.wl_display_instance == nullptr) {
+        return VK_ERROR_FEATURE_NOT_PRESENT;
+    }
+
+    struct wl_registry *registry = wl_display_get_registry(winSys.wl_display_instance);
+    wl_registry_add_listener(registry, &registryListener, nullptr);
+    wl_display_roundtrip(winSys.wl_display_instance);
+    if (winSys.wl_compositor_instance == nullptr) {
+        return VK_ERROR_FEATURE_NOT_PRESENT;
+    }
+
+    winSys.wl_surface_instance = wl_compositor_create_surface(winSys.wl_compositor_instance);
+    if (winSys.wl_surface_instance == nullptr) {
+        return VK_ERROR_FEATURE_NOT_PRESENT;
+    }
+
+    winSys.wl_xdg_shell_surface = xdg_wm_base_get_xdg_surface(winSys.wl_xdg_shell, winSys.wl_surface_instance);
+
+    if (winSys.wl_xdg_shell_surface == nullptr) {
+        return VK_ERROR_FEATURE_NOT_PRESENT;
+    }
+    winSys.wl_xdg_toplevel = xdg_surface_get_toplevel(winSys.wl_xdg_shell_surface);
+
+    if (winSys.wl_xdg_toplevel == nullptr) {
+        return VK_ERROR_FEATURE_NOT_PRESENT;
+    }
+
+    xdg_surface_add_listener(winSys.wl_xdg_shell_surface, &shellSurfaceListener, nullptr);
+
+    xdg_toplevel_set_title(winSys.wl_xdg_toplevel, applicationNameNarrow);
+    xdg_toplevel_set_app_id(winSys.wl_xdg_toplevel, applicationNameNarrow);
+    xdg_toplevel_set_max_size(winSys.wl_xdg_toplevel, WINDOW_WIDTH, WINDOW_HEIGHT);
+    xdg_toplevel_set_min_size(winSys.wl_xdg_toplevel, WINDOW_WIDTH, WINDOW_HEIGHT);
+    xdg_toplevel_add_listener(winSys.wl_xdg_toplevel,&toplevelListener, nullptr);
+
+    wl_surface_commit(winSys.wl_surface_instance);
+    wl_display_roundtrip(winSys.wl_display_instance);
+    wl_surface_commit(winSys.wl_surface_instance);
+
+    VkWaylandSurfaceCreateInfoKHR createInfo = {
+        .sType = VK_STRUCTURE_TYPE_WAYLAND_SURFACE_CREATE_INFO_KHR,
+        .display = winSys.wl_display_instance,
+        .surface = winSys.wl_surface_instance
+    };
+    return vkCreateWaylandSurfaceKHR(vulkanInstance,&createInfo,nullptr, surface);
 }
 #endif
 
@@ -183,12 +312,12 @@ void PlatformHandleXEvent(void)
 #if defined(VCRT_PLATFORM_HAS_WAYLAND)
 void PlatformShowWaylandWindow(void)
 {
-
+    // No need to show explicitly.
 }
 
 void PlatformHandleWaylandEvent(void)
 {
-    winSys.quit = true;
+    wl_display_roundtrip(winSys.wl_display_instance);
 }
 #endif
 
@@ -205,7 +334,7 @@ auto WindowSystemEventDispatch()
                               &PlatformHandleWaylandEvent);
     }
     assert(false && "Unknown window system.");
-    return nullptr;
+    return std::make_tuple(nullptr, nullptr);
 #elif defined(VCRT_PLATFORM_HAS_X11)
     return std::make_tuple(&PlatformShowXWindow, &PlatformHandleXEvent);
 #elif defined(VCRT_PLATFORM_HAS_WAYLAND)
