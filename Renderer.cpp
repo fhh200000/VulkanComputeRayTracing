@@ -27,7 +27,6 @@ static VkImage vulkanComputeResultImage;
 static VkImageView vulkanComputeResultImageView;
 static VkDeviceMemory vulkanComputeResultImageMemory;
 static VkDescriptorSetLayout vulkanComputeDescriptorSetLayout;
-static VkDescriptorSetLayout vulkanGraphicsDescriptorSetLayout;
 static VkPipelineShaderStageCreateInfo GraphicsShaderStages[2];
 static VkPipelineShaderStageCreateInfo ComputeShaderStage;
 static VkDescriptorPool vulkanDescriptorPool;
