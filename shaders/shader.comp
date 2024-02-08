@@ -6,12 +6,24 @@
 */
 #version 450
 
-layout(std140, binding = 0) writeonly buffer OutputImage {
-	vec4 graphics[ ];
-};
+layout (rgba32f, set = 0, binding = 0) uniform image2D OutputImage;
 
 layout (local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
 
 void main() {
-    graphics[ gl_LocalInvocationIndex ] = vec4(0.0,1.0,0.5,1.0);  //R,G,B,A
+    ivec2 texelCoord = ivec2(gl_GlobalInvocationID.xy);
+    ivec2 size = imageSize(OutputImage);
+
+    if(texelCoord.x < size.x && texelCoord.y < size.y)
+    {
+        vec4 color = vec4(0.0, 0.0, 0.0, 1.0);
+
+        if(gl_LocalInvocationID.x != 0 && gl_LocalInvocationID.y != 0)
+        {
+            color.x = float(texelCoord.x)/(size.x);
+            color.y = float(texelCoord.y)/(size.y);
+        }
+
+        imageStore(OutputImage, texelCoord, color);
+    }
 }
