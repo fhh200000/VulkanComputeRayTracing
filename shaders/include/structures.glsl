@@ -8,6 +8,9 @@
 struct sphere {
     vec3 center;
     float radius;
+    vec3 colour;
+    vec3 texture;   // texture.x: texture type (diffuse/metal/glass)
+                    // texture.y: texture param1(reflect ratio in diffuse, fuzzness in metal, eta in glass)
 };
 
 struct ray {

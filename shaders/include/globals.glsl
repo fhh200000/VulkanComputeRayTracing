@@ -5,7 +5,7 @@
 
 */
 #include "structures.glsl"
-
+#include "textures.glsl"
 #define SAMPLES_PER_PIXEL 100
 
 const float aspect_ratio = 16.0 / 9.0;
@@ -32,6 +32,6 @@ const float infinity = 1. / 0.;
 
 // World.
 const sphere world[] = {
-    sphere(vec3(0,0,-1), 0.5),
-    sphere(vec3(0,-100.5,-1), 100)
+    sphere(vec3(0,0,-1), 0.5, vec3(1.0,1.0,1.0),vec3(1.0,0.0,0.0)),
+    sphere(vec3(0,-100.5,-1), 100, vec3(1.0,1.0,1.0),vec3(1.0,0.0,0.0))
 };

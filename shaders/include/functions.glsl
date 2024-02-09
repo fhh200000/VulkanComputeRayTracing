@@ -45,7 +45,10 @@ vec3 ray_color(const ray r) {
     for(int i=0;i<world.length();i++) {
         bool t = hit_sphere(world[i], r, 0, global_hit_record);
         if (t) {
-            return 0.5*(normalize(global_hit_record.normal)+vec3(1,1,1));
+            //return 0.5*(normalize(global_hit_record.normal)+vec3(1,1,1));
+            vec3 direction = normalize(vec3(rand(r.direction.xy),rand(r.direction.xy+1),rand(r.direction.xy+2)));
+            direction = faceforward(global_hit_record.normal, global_hit_record.normal, direction);
+            return 0.5 * ray_color(ray(global_hit_record.point, direction));
         }
     }
     vec3 unit_direction = normalize(r.direction);
