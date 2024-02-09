@@ -5,6 +5,10 @@
 
 */
 #version 450
+#extension GL_GOOGLE_include_directive : enable // for include
+
+#include "include/globals.glsl"
+#include "include/structures.glsl"
 
 layout (rgba32f, set = 0, binding = 0) uniform image2D OutputImage;
 
@@ -13,17 +17,10 @@ layout (local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
 void main() {
     ivec2 texelCoord = ivec2(gl_GlobalInvocationID.xy);
     ivec2 size = imageSize(OutputImage);
-
-    if(texelCoord.x < size.x && texelCoord.y < size.y)
-    {
-        vec4 color = vec4(0.0, 0.0, 0.0, 1.0);
-
-        if(gl_LocalInvocationID.x != 0 && gl_LocalInvocationID.y != 0)
-        {
-            color.x = float(texelCoord.x)/(size.x);
-            color.y = float(texelCoord.y)/(size.y);
-        }
-
-        imageStore(OutputImage, texelCoord, color);
-    }
+    vec4 color = vec4(0.0, 0.0, 0.0, 1.0);
+    vec3 pixel_center = pixel00_loc + (texelCoord.x * pixel_delta_u) + (texelCoord.y * pixel_delta_v);
+    vec3 ray_direction = pixel_center - camera_center;
+    ray r = ray(camera_center, ray_direction);
+    color.rgb = ray_color(r);
+    imageStore(OutputImage, texelCoord, color);
 }

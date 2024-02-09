@@ -15,8 +15,8 @@ endif()
 project ("VulkanComputeRayTracing")
 
 if(LINUX)
-  set(PLATFORMS "x11" "wayland"
-    STRING "Use window system")
+  set(PLATFORMS "x11"
+   CACHE STRING "Use window system")
   set_property(CACHE PLATFORMS PROPERTY STRINGS
     ""
     "x11"
