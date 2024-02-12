@@ -6,7 +6,11 @@
 */
 #include "structures.glsl"
 #include "textures.glsl"
+#if 1
 #define SAMPLES_PER_PIXEL 100
+#else
+#define SAMPLES_PER_PIXEL 1
+#endif
 #define MAX_RECURSION_LEVEL 50
 
 const float aspect_ratio = 16.0 / 9.0;

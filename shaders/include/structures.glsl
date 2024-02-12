@@ -21,6 +21,7 @@ struct ray {
 struct hit_record {
     vec3 point;
     vec3 normal;
-    float t;
+    float min_t;
+    float max_t;
 };
 
