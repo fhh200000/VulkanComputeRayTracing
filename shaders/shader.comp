@@ -15,11 +15,11 @@ layout (local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
 
 void main() {
     ivec2 texelCoord = ivec2(gl_GlobalInvocationID.xy);
-
+    vec3 pixel_center = pixel00_loc + (texelCoord.x * pixel_delta_u) + (texelCoord.y * pixel_delta_v);
     vec4 color = vec4(0.0, 0.0, 0.0, 1.0);
 
     for(int i=0;i<SAMPLES_PER_PIXEL;i++) {
-        vec3 pixel_center = pixel00_loc + (texelCoord.x * pixel_delta_u) + (texelCoord.y * pixel_delta_v);
+
         vec3 random_square = (-0.5+rand(vec2(i,i)))*pixel_delta_u + (-0.5+rand(vec2(i+1,i+1)))*pixel_delta_v;
         vec3 pixel_sample = pixel_center + random_square;
         vec3 ray_direction = pixel_sample - camera_center;
