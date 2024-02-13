@@ -8,8 +8,8 @@
 
 layout (location = 0) out vec4 outColor;
 
-layout (set = 0, binding = 1) uniform sampler2D OutputImage;
+layout (rgba32f, set = 0, binding = 1) uniform readonly image2D OutputImage;
 
 void main() {
-    outColor = texelFetch(OutputImage, ivec2(gl_FragCoord.xy), 0);
+    outColor = imageLoad(OutputImage, ivec2(gl_FragCoord.xy));
 }
