@@ -5,6 +5,8 @@
 
 */
 
+precision mediump float;
+
 struct sphere {
     vec3 center;
     float radius;

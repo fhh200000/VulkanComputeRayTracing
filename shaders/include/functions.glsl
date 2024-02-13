@@ -33,7 +33,7 @@ bool hit_sphere(const sphere s, ray r, inout hit_record global_hit_record) {
     global_hit_record.max_t = root;
     global_hit_record.point = root*r.direction+r.origin;
     vec3 normal = (global_hit_record.point - s.center) / s.radius;
-    global_hit_record.normal = faceforward(normal, normal, r.direction);
+    global_hit_record.normal = normal;//faceforward(normal, normal, r.direction);
     return true;
 }
 
@@ -53,15 +53,15 @@ vec3 ray_color(ray r) {
     for(int pass=0;pass<MAX_RECURSION_LEVEL;pass++) {
         t = false;
         global_hit_record.max_t = infinity;
-        global_hit_record.min_t = 0;
+        global_hit_record.min_t = 0.001;
         for(int i=0;i<world.length();i++) {
             if(hit_sphere(world[i], r, global_hit_record)) {
                 t = true;
             }
         }
         if (t) {
-            vec3 direction = random_in_unit_sphere(r.direction);
-            direction = -faceforward(direction, global_hit_record.normal, direction);
+            //   direction = -faceforward(direction, global_hit_record.normal, direction);
+            vec3 direction = global_hit_record.normal+random_in_unit_sphere(r.direction);
             color *= 0.5;
             r.origin = global_hit_record.point;
             r.direction = direction;
@@ -69,7 +69,7 @@ vec3 ray_color(ray r) {
         else { // Hit sky.
                 vec3 unit_direction = normalize(r.direction);
                 float a = 0.5*(unit_direction.y + 1.0);
-                color *=  (1.0-a)*vec3(1.0, 1.0, 1.0) + a*vec3(0.5, 0.7, 1.0);
+                color *= mix(vec3(1),vec3(.5,.7,1), a);
             return color;
         }
     }

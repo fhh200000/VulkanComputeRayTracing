@@ -33,7 +33,7 @@ const vec3 pixel_delta_v = viewport_v / 720;
 const vec3 viewport_upper_left = camera_center - vec3(0, 0, focal_length) - viewport_u/2 - viewport_v/2;
 const vec3 pixel00_loc = viewport_upper_left + 0.5 * (pixel_delta_u + pixel_delta_v);
 
-const float infinity = 1. / 0.;
+const float infinity = 1e5;
 
 // World.
 const sphere world[] = {
