@@ -25,5 +25,7 @@ struct hit_record {
     vec3 normal;
     float min_t;
     float max_t;
+    vec3 texture;
+    vec3 colour;
 };
 

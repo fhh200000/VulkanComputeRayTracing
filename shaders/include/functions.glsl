@@ -34,11 +34,31 @@ bool hit_sphere(const sphere s, ray r, inout hit_record global_hit_record) {
     global_hit_record.point = root*r.direction+r.origin;
     vec3 normal = (global_hit_record.point - s.center) / s.radius;
     global_hit_record.normal = normal;//faceforward(normal, normal, r.direction);
+    global_hit_record.texture = s.texture;
+    global_hit_record.colour = s.colour;
     return true;
 }
 
 vec3 random_in_unit_sphere(vec3 seed) {
     return normalize(vec3(rand(seed.xy),rand(seed.xz),rand(seed.yz)));
+}
+
+bool modified_refract(const in vec3 v, const in vec3 n, const in float ni_over_nt,
+                      out vec3 refracted) {
+    float dt = dot(v, n);
+    float discriminant = 1. - ni_over_nt*ni_over_nt*(1.-dt*dt);
+    if (discriminant > 0.) {
+        refracted = ni_over_nt*(v - n*dt) - n*sqrt(discriminant);
+        return true;
+    } else {
+        return false;
+    }
+}
+
+float schlick(float cosine, float ior) {
+    float r0 = (1.-ior)/(1.+ior);
+    r0 = r0*r0;
+    return r0 + (1.-r0)*pow((1.-cosine),5.);
 }
 
 
@@ -60,11 +80,7 @@ vec3 ray_color(ray r) {
             }
         }
         if (t) {
-            //   direction = -faceforward(direction, global_hit_record.normal, direction);
-            vec3 direction = global_hit_record.normal+random_in_unit_sphere(r.direction);
-            color *= 0.5;
-            r.origin = global_hit_record.point;
-            r.direction = direction;
+            texture_dispatcher(global_hit_record, color, r);
         }
         else { // Hit sky.
                 vec3 unit_direction = normalize(r.direction);

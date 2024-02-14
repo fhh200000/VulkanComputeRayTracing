@@ -37,6 +37,10 @@ const float infinity = 1e5;
 
 // World.
 const sphere world[] = {
-    sphere(vec3(0,0,-1), 0.5, vec3(1.0,1.0,1.0),vec3(1.0,0.0,0.0)),
-    sphere(vec3(0,-100.5,-1), 100, vec3(1.0,1.0,1.0),vec3(1.0,0.0,0.0))
+    sphere(vec3(0,0,-1), 0.5, vec3(0.1,0.2,0.5), vec3(TEXTURE_LAMBERTIAN,0.8,0.0)),
+    sphere(vec3(-1,0,-1), 0.5, vec3(1.0,1.0,1.0), vec3(TEXTURE_GLASS,1.5,0.0)),
+    sphere(vec3(-1,0,-1), -0.4, vec3(1.0,1.0,1.0), vec3(TEXTURE_GLASS,1.5,0.0)),
+    sphere(vec3(1,0,-1), 0.5, vec3(0.8,0.6,0.2), vec3(TEXTURE_METAL,0.0,0.0)),
+    sphere(vec3(0,-100.5,-1), 100,vec3(0.8,0.8,0.0), vec3(TEXTURE_LAMBERTIAN,0.8,0.0))
 };
+
