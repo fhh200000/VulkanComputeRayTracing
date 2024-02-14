@@ -24,7 +24,7 @@ if(LINUX)
     )
 endif()
 
-option(LOAD_SHADER_FROM_MEMORY OFF)
+option(LOAD_SHADER_FROM_MEMORY ON)
 
 if(WIN32)
   set (PLATFORM_SOURCE "platform/Win32.cpp")
@@ -143,4 +143,5 @@ if(LOAD_SHADER_FROM_MEMORY)
   add_dependencies(VulkanComputeRayTracing compile-shaders)
 endif()
 
-# TODO: 如有需要，请添加测试并安装目标。
+# RandomGenerator
+add_executable (SceneGenerator SceneGenerator.cpp)

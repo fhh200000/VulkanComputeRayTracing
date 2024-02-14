@@ -15,6 +15,30 @@ layout (local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
 
 void main() {
 
+    vec3 camera_center = camera_lookfrom;
+
+    // Determine viewport dimensions.
+    float focal_length = length(camera_lookfrom - camera_lookat);
+    float theta = radians(camera_vfov);
+    float h = tan(theta/2);
+    float viewport_height = 2 * h * focal_length;
+    float viewport_width = viewport_height * (IMAGE_WIDTH/IMAGE_HEIGHT);
+    // Calculate the u,v,w unit basis vectors for the camera coordinate frame.
+    vec3 camera_w = normalize(camera_lookfrom - camera_lookat);
+    vec3 camera_u = normalize(cross(camera_vup, camera_w));
+    vec3 camera_v = cross(camera_w, camera_u);
+    // Calculate the vectors across the horizontal and down the vertical viewport edges.
+    vec3 viewport_u = viewport_width * camera_u;
+    // Vector across viewport horizontal edge
+    vec3 viewport_v = viewport_height * -camera_v; // Vector down viewport vertical edge
+    // Calculate the horizontal and vertical delta vectors from pixel to pixel.
+    vec3 pixel_delta_u = viewport_u / IMAGE_HEIGHT;
+    vec3 pixel_delta_v = viewport_v / IMAGE_HEIGHT;
+    // Calculate the location of the upper left pixel.
+    vec3 viewport_upper_left = camera_center - (focal_length * camera_w) - viewport_u/2 - viewport_v/2;
+    vec3 pixel00_loc = viewport_upper_left + 0.5 * (pixel_delta_u + pixel_delta_v);
+
+
     ivec2 texelCoord = ivec2(gl_GlobalInvocationID.xy);
     vec3 pixel_center = pixel00_loc + (texelCoord.x * pixel_delta_u) + (texelCoord.y * pixel_delta_v);
     vec4 color = vec4(0.0, 0.0, 0.0, 1.0);
